@@ -24,10 +24,11 @@ classdef PathTracer < handle
             %   Detailed explanation goes here
             tic;
             
-            for x = 1:obj.xres
-                for y = 1:obj.yres
-                    d = (([x,y] - 0.5)./[obj.xres, obj.yres])*2 - 1;
-                    aspectRatio = obj.xres/obj.yres;
+            dim = [obj.xres, obj.yres];
+            for x = 1:dim(1)
+                for y = 1:dim(2)
+                    d = (([x,y] - 0.5)./dim)*2 - 1;
+                    aspectRatio = dim(1)/dim(2);
                     rayDirection = normalize([d(1)*aspectRatio, -d(2), -1], 'norm');
                     [hitPoint, color] = obj.mesh.closestHit([0,0,0], rayDirection);
                     obj.output(y,x,:) = color;
