@@ -8,10 +8,11 @@ classdef PathTracer < handle
         yres
         scene
         nbrSamples
+        pathDepth
     end
     
     methods (Access = public)
-        function obj = PathTracer(xres, yres, sceneName, nbrSamples)
+        function obj = PathTracer(xres, yres, sceneName, nbrSamples, pathDepth)
             %UNTITLED2 Construct an instance of this class
             %   Detailed explanation goes here
             obj.xres = xres;
@@ -19,6 +20,7 @@ classdef PathTracer < handle
             obj.output = zeros(xres,yres,3, 'single');
             obj.scene = scene(sceneName);
             obj.nbrSamples = nbrSamples;
+            obj.pathDepth = pathDepth;
         end
         
         function renderTime = render(obj,app)
@@ -33,11 +35,12 @@ classdef PathTracer < handle
                     for sample = 1:obj.nbrSamples
                         d = (([x,y]-1 + rand(1,2))./dim)*2 - 1;
                         aspectRatio = dim(1)/dim(2);
-                        rayDirection = normalize([d(1)*aspectRatio, -d(2), -1], 'norm');
-                        [hitPoint, color] = obj.closestHit([0,0,0], rayDirection);
+                        ray.direction = normalize([d(1)*aspectRatio, -d(2), -1], 'norm');
+                        ray.origin = [0,0,0];
+                        color = obj.samplePath(ray, obj.pathDepth);                        
                         tempColor = tempColor + color;
                     end
-                    obj.output(y,x,:) = tempColor / obj.nbrSamples;
+                    obj.output(y,x,:) = obj.gammaCorrect( tempColor / obj.nbrSamples );
                 end
             end
             
@@ -52,8 +55,41 @@ classdef PathTracer < handle
             disp(strcat('Saved::', filename));
         end
         
-        function [hitPoint, hitMaterial] = closestHit(obj, rayOrigin, rayDirection)
+        function color = samplePath(obj, ray, pathDepth)
+            if pathDepth <= 0
+                color = [0,0,0];
+                return
+            else
+                [hitPoint, materialColor, hitNormal] = obj.closestHit(ray.origin, ray.direction);
+                if hitPoint(1)==Inf
+                    color = materialColor;
+                    return
+                else
+                    ray.origin = hitPoint;
+                    ray.direction = obj.cosineRandDir(hitNormal);
+                    color = materialColor .* obj.samplePath(ray, pathDepth-1);
+                end
+            end
+    end
+        
+    end
+    
+    methods (Access = private)
+        
+        function direction = cosineRandDir(obj, normal)
+            u = rand(1,2);
+            a = 1 - 2*u(1); 
+            b = sqrt(1 - a*a); 
+            phi = 2*pi*u(2); 
+            x = normal(1) + b*cos(phi);
+            y = normal(2) + b*sin(phi); 
+            z = normal(3) + a; 
+            direction = [x,y,z]/norm([x,y,z]);
+        end
+        
+        function [hitPoint, hitMaterial, hitNormal] = closestHit(obj, rayOrigin, rayDirection)
             hitPoint = [Inf, Inf, Inf];
+            hitNormal = [0,0,0];
             [t, u, v] = getAllHits(obj, rayOrigin, rayDirection);
             
             if all(isnan(t)) % no hits
@@ -67,10 +103,12 @@ classdef PathTracer < handle
             hitMaterial = triColors(1,:) * (1 - u(hitIdx) - v(hitIdx))...
                         + triColors(2,:) * u(hitIdx)...
                         + triColors(3,:) * v(hitIdx);
-        end  
-    end
-    
-    methods (Access = private)
+            triNormals = obj.scene.normals(obj.scene.indices(hitIdx,:),:);
+            hitNormal  = triNormals(1,:) * (1 - u(hitIdx) - v(hitIdx))...
+                        + triNormals(2,:) * u(hitIdx)...
+                        + triNormals(3,:) * v(hitIdx);
+        end 
+        
         function [depth, u, v] = getAllHits(obj, rayOrigin, rayDirection)
             % Möller–Trumbore algorithm
             % return: [depth t, barycentric u v]
@@ -94,7 +132,7 @@ classdef PathTracer < handle
             v = sum(rayDirection.*q,2)./a; % 2nd barycentric
             t = sum(edge2.*q,2)./a;
             ok = (angleOK & u >= 0.0 & v >= 0.0 &  (u + v) <= 1.0);
-            intersect = (ok & t>=0.0); % index over all triangles that intersect with ray
+            intersect = (ok & t>=0.0001); % index over all triangles that intersect with ray
             depth(intersect) = t(intersect);
             
         end
@@ -102,6 +140,11 @@ classdef PathTracer < handle
         function missColor = miss(obj, rayDirection)
             t = rayDirection(2)*0.5+ 0.5;
             missColor = (1-t)*[1,1,1] + t*[0.5,0.7, 1.0];
+        end
+        
+        function outColor = gammaCorrect(obj, inColor)
+            % gamma 2
+            outColor = sqrt(inColor);
         end
         
     end
