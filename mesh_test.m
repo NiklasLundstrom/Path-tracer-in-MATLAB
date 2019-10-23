@@ -1,8 +1,8 @@
 %% setup
-xres = 50;
-yres = 50;
-nbrSamples = 15;
-pathDepth = 2;
+xres = 100;
+yres = 100;
+nbrSamples = 1;
+pathDepth = 3;
 pathTracer = PathTracer(xres, yres, 'Sphere', nbrSamples, pathDepth);
 output = zeros(xres,yres,3, 'single');
 

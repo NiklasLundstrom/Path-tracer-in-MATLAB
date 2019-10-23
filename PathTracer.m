@@ -74,28 +74,15 @@ classdef PathTracer < handle
                         return                        
                     else
                         ray.origin = hitPoint;
-                        ray.direction = outDir;
+                        ray.direction = outDir./norm(outDir);
                         color = attenuation .* obj.samplePath(ray, pathDepth-1);
                     end
-                    
                 end
             end
-    end
-        
+        end 
     end
     
     methods (Access = private)
-        
-        function direction = cosineRandDir(obj, normal)
-            u = rand(1,2);
-            a = 1 - 2*u(1); 
-            b = sqrt(1 - a*a); 
-            phi = 2*pi*u(2); 
-            x = normal(1) + b*cos(phi);
-            y = normal(2) + b*sin(phi); 
-            z = normal(3) + a; 
-            direction = [x,y,z]/norm([x,y,z]);
-        end
         
         function [hitPoint, hitMaterial, hitNormal] = closestHit(obj, rayOrigin, rayDirection)
             hitPoint = [Inf, Inf, Inf];
@@ -115,6 +102,7 @@ classdef PathTracer < handle
             hitNormal  = triNormals(1,:) * (1 - u(hitIdx) - v(hitIdx))...
                         + triNormals(2,:) * u(hitIdx)...
                         + triNormals(3,:) * v(hitIdx);
+            hitNormal = hitNormal./norm(hitNormal);
         end 
         
         function [outDepth, outU, outV, outMeshIdx, outTriIdx] = getAllHits(obj, rayOrigin, rayDirection)
