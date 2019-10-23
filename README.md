@@ -11,5 +11,5 @@ A CPU path tracer in MATLAB
 - gamma correction
 
 <p align="center">
-  <img src="./progress/20191021-Diffuse-GI_Sphere_Antialiasing.PNG" width="512" title="GUI">
+  <img src="./progress/20191023-Reflections.PNG" width="512" title="GUI">
 </p>
