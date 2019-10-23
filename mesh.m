@@ -10,6 +10,7 @@ classdef mesh < handle
         indices
         colors
         normals
+        material material = lambertian([0.5, 0.5, 0.5])
     end
     
     methods (Access = public)

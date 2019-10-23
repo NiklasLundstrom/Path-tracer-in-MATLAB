@@ -60,14 +60,24 @@ classdef PathTracer < handle
                 color = [0,0,0];
                 return
             else
-                [hitPoint, materialColor, hitNormal] = obj.closestHit(ray.origin, ray.direction);
+                [hitPoint, hitMaterial, hitNormal] = obj.closestHit(ray.origin, ray.direction);
                 if hitPoint(1)==Inf
-                    color = materialColor;
+                    % miss
+                    color = hitMaterial;
                     return
                 else
-                    ray.origin = hitPoint;
-                    ray.direction = obj.cosineRandDir(hitNormal);
-                    color = materialColor .* obj.samplePath(ray, pathDepth-1);
+                    % hit
+                    hitInfo.normal = hitNormal;
+                    [continuePath, outDir, attenuation] = hitMaterial.scatter(ray.direction, hitInfo);
+                    if ~continuePath
+                        color = attenuation;
+                        return                        
+                    else
+                        ray.origin = hitPoint;
+                        ray.direction = outDir;
+                        color = attenuation .* obj.samplePath(ray, pathDepth-1);
+                    end
+                    
                 end
             end
     end
@@ -90,7 +100,7 @@ classdef PathTracer < handle
         function [hitPoint, hitMaterial, hitNormal] = closestHit(obj, rayOrigin, rayDirection)
             hitPoint = [Inf, Inf, Inf];
             hitNormal = [0,0,0];
-            [t, u, v] = getAllHits(obj, rayOrigin, rayDirection);
+            [t, u, v, meshIdx, triIdx] = getAllHits(obj, rayOrigin, rayDirection);
             
             if all(isnan(t)) % no hits
                 hitMaterial = miss(obj, rayDirection);
@@ -98,43 +108,58 @@ classdef PathTracer < handle
             end
             % get closest hit
             [t_min, hitIdx] = min(t);
+            hitMesh = obj.scene.meshes(meshIdx(hitIdx));
             hitPoint = rayOrigin + rayDirection * t_min;
-            triColors = obj.scene.colors(obj.scene.indices(hitIdx,:), :);
-            hitMaterial = triColors(1,:) * (1 - u(hitIdx) - v(hitIdx))...
-                        + triColors(2,:) * u(hitIdx)...
-                        + triColors(3,:) * v(hitIdx);
-            triNormals = obj.scene.normals(obj.scene.indices(hitIdx,:),:);
+            hitMaterial = hitMesh.material;
+            triNormals = hitMesh.normals(hitMesh.indices(triIdx(hitIdx),:),:);
             hitNormal  = triNormals(1,:) * (1 - u(hitIdx) - v(hitIdx))...
                         + triNormals(2,:) * u(hitIdx)...
                         + triNormals(3,:) * v(hitIdx);
         end 
         
-        function [depth, u, v] = getAllHits(obj, rayOrigin, rayDirection)
+        function [outDepth, outU, outV, outMeshIdx, outTriIdx] = getAllHits(obj, rayOrigin, rayDirection)
             % Möller–Trumbore algorithm
-            % return: [depth t, barycentric u v]
-            nbrTri = size(obj.scene.indices,1);
-            epsilon = 1e-5;
-            depth = nan(nbrTri,1);
-            u = 0; v = 0;
+            % return: [depth t, barycentric u v, mesh index]
+            outDepth = [];
+            outU = [];
+            outV = [];
+            outMeshIdx = [];
+            outTriIdx = [];
             
-            edge1 = obj.scene.verts2 - obj.scene.verts1;
-            edge2 = obj.scene.verts3 - obj.scene.verts1;
-            h = cross(repmat(rayDirection,nbrTri,1), edge2, 2);
-            a = sum(edge1.*h, 2);
-            angleOK = abs(a) > epsilon;
-            if (all(~angleOK))
-                return % all tringles are parallel to ray
+            meshIdx = 1;
+            for m = obj.scene.meshes
+                nbrTri = size(m.indices,1);
+                epsilon = 1e-5;
+                %depth = nan(nbrTri,1);
+                u = 0; v = 0;
+            
+                edge1 = m.verts2 - m.verts1;
+                edge2 = m.verts3 - m.verts1;
+                h = cross(repmat(rayDirection,nbrTri,1), edge2, 2);
+                a = sum(edge1.*h, 2);
+                angleOK = abs(a) > epsilon;
+                if (all(~angleOK))
+                    return % all tringles are parallel to ray
+                end
+                a(~angleOK) = nan;
+                s = rayOrigin - m.verts1;
+                u = sum(s.*h,2)./a; % 1st barycentric
+                q = cross(s, edge1, 2);
+                v = sum(rayDirection.*q,2)./a; % 2nd barycentric
+                t = sum(edge2.*q,2)./a;
+                ok = (angleOK & u >= 0.0 & v >= 0.0 &  (u + v) <= 1.0);
+                intersectIdx = (ok & t>=0.0001); % index over all triangles that intersect with ray
+                depth = t(intersectIdx);
+                
+                % add to out vectors
+                outDepth = [outDepth; depth];
+                outU = [outU; u(intersectIdx)];
+                outV = [outV; v(intersectIdx)];
+                outMeshIdx = [outMeshIdx; zeros(size(depth)) + meshIdx];
+                outTriIdx = [outTriIdx; find(intersectIdx)];
+                
+                meshIdx = meshIdx + 1;
             end
-            a(~angleOK) = nan;
-            s = rayOrigin - obj.scene.verts1;
-            u = sum(s.*h,2)./a; % 1st barycentric
-            q = cross(s, edge1, 2);
-            v = sum(rayDirection.*q,2)./a; % 2nd barycentric
-            t = sum(edge2.*q,2)./a;
-            ok = (angleOK & u >= 0.0 & v >= 0.0 &  (u + v) <= 1.0);
-            intersect = (ok & t>=0.0001); % index over all triangles that intersect with ray
-            depth(intersect) = t(intersect);
-            
         end
         
         function missColor = miss(obj, rayDirection)

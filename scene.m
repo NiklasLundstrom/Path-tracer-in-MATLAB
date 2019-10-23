@@ -4,13 +4,7 @@ classdef scene < handle
     %   Right-handed coordinate system!
     
     properties
-        vertices
-        verts1
-        verts2
-        verts3
-        indices
-        colors
-        normals
+        meshes mesh
     end
     
     methods (Access = public)
@@ -19,28 +13,17 @@ classdef scene < handle
             %   Detailed explanation goes here            
             if (strcmp(sceneName, 'Single Triangle'))
                 triangle = mesh('Single Triangle');
-                    obj.verts1 = triangle.verts1;
-                    obj.verts2 = triangle.verts2;
-                    obj.verts3 = triangle.verts3;
-                    obj.indices = triangle.indices;
-                    obj.colors = triangle.colors;
-                    obj.normals = triangle.normals;
+                triangle.material = lambertian(rand(1,3));
+                obj.meshes(1) = triangle;
+
             elseif (strcmp(sceneName, 'Sphere'))
                 sphere = mesh('Sphere');
-                    obj.verts1 = sphere.verts1;
-                    obj.verts2 = sphere.verts2;
-                    obj.verts3 = sphere.verts3;
-                    obj.indices = sphere.indices;
-                    obj.colors = sphere.colors;
-                    obj.normals = sphere.normals;
+                sphere.material = lambertian([1,0,0]);
+                obj.meshes(1) = sphere; 
                     
                 plane = mesh('Plane');
-                    obj.verts1 = [obj.verts1 ; plane.verts1];
-                    obj.verts2 = [obj.verts2 ; plane.verts2];
-                    obj.verts3 = [obj.verts3 ; plane.verts3];
-                    obj.indices = [obj.indices ; plane.indices + size(sphere.colors,1)];
-                    obj.colors = [obj.colors ; plane.colors];
-                    obj.normals = [obj.normals ; plane.normals];
+                plane.material = lambertian([0.5, 0.5, 0.5]);
+                obj.meshes(2) = plane;
                     
             else
                 error('Invalid scene name!');
