@@ -1,6 +1,7 @@
 classdef PathTracer < handle
-    %UNTITLED2 Summary of this class goes here
-    %   Detailed explanation goes here
+    % Class handles the whole path tracing system,
+    % including handles to the scene geometry, samples paths
+    % and writes output to both screen and file.
     
     properties
         output
@@ -13,8 +14,6 @@ classdef PathTracer < handle
     
     methods (Access = public)
         function obj = PathTracer(xres, yres, sceneName, nbrSamples, pathDepth)
-            %UNTITLED2 Construct an instance of this class
-            %   Detailed explanation goes here
             obj.xres = xres;
             obj.yres = yres;
             obj.output = zeros(xres,yres,3, 'single');
@@ -24,8 +23,7 @@ classdef PathTracer < handle
         end
         
         function renderTime = render(obj,app)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            %Performs the path tracing algorithm
             tic;
             
             dim = [obj.xres, obj.yres];
@@ -49,6 +47,7 @@ classdef PathTracer < handle
         end
         
         function writeOutputToFile(obj)
+            % Writes rendered image to image file
             time = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
             filename = strcat('output\output_', time, '.png');
             imwrite(obj.output, filename, 'png');
@@ -56,6 +55,7 @@ classdef PathTracer < handle
         end
         
         function color = samplePath(obj, ray, pathDepth)
+            % Samples one (1) full path for one pixel
             if pathDepth <= 0
                 color = [0,0,0];
                 return
@@ -85,6 +85,8 @@ classdef PathTracer < handle
     methods (Access = private)
         
         function [hitPoint, hitMaterial, hitNormal] = closestHit(obj, rayOrigin, rayDirection)
+            % Finds closest hit point, if any. Returns hit point info or
+            % miss info
             hitPoint = [Inf, Inf, Inf];
             hitNormal = [0,0,0];
             [t, u, v, meshIdx, triIdx] = getAllHits(obj, rayOrigin, rayDirection);
@@ -97,7 +99,6 @@ classdef PathTracer < handle
             [t_min, hitIdx] = min(t);
             hitMesh = obj.scene.meshes(meshIdx(hitIdx));
             hitPoint = rayOrigin + rayDirection * t_min;
-            hitMaterial = hitMesh.material;
             triNormals = hitMesh.normals(hitMesh.indices(triIdx(hitIdx),:),:);
             hitNormal  = triNormals(1,:) * (1 - u(hitIdx) - v(hitIdx))...
                         + triNormals(2,:) * u(hitIdx)...
@@ -106,8 +107,8 @@ classdef PathTracer < handle
         end 
         
         function [outDepth, outU, outV, outMeshIdx, outTriIdx] = getAllHits(obj, rayOrigin, rayDirection)
-            % Möller–Trumbore algorithm
-            % return: [depth t, barycentric u v, mesh index]
+            % Finds all intersections along a ray using the Möller–Trumbore algorithm
+            % return: [depth t, barycentric u v, mesh index, triangle index]
             outDepth = [];
             outU = [];
             outV = [];
@@ -127,7 +128,8 @@ classdef PathTracer < handle
                 a = sum(edge1.*h, 2);
                 angleOK = abs(a) > epsilon;
                 if (all(~angleOK))
-                    return % all tringles are parallel to ray
+                    meshIdx = meshIdx + 1;
+                    continue % all tringles are parallel to ray
                 end
                 a(~angleOK) = nan;
                 s = rayOrigin - m.verts1;
@@ -151,6 +153,7 @@ classdef PathTracer < handle
         end
         
         function missColor = miss(obj, rayDirection)
+            % Returns the colour to be used when there is a miss
             t = rayDirection(2)*0.5+ 0.5;
             missColor = (1-t)*[1,1,1] + t*[0.5,0.7, 1.0];
         end

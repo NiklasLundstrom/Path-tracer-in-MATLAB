@@ -1,4 +1,5 @@
 classdef metal < material
+    % Metal material that reflects without blur
      properties
         albedo = [1,1,1]
     end

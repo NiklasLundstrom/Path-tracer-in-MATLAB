@@ -1,12 +1,11 @@
 classdef (Abstract) material < handle
-    
+    % Abstrac class for material. A concrete material must define scatter
+    % function, which returns an outoing ray direction and attenuation.
+    % Could also be a light source if continuePath is False and attenuation
+    % is the light colour/intensity.
 
-    
     methods (Abstract)
-        
-        [continuePath, outDir, attenuation] = scatter(obj, inDir, hitInfo);
-        
-        
+        [continuePath, outDir, attenuation] = scatter(obj, inDir, hitInfo);%Choose outgoing direction for next ray 
     end
     
     methods (Access = protected)

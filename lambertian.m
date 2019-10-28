@@ -1,5 +1,5 @@
 classdef lambertian < material
-    
+    % Lambertian material. Shoots diffuse cosine weighted ray.
     properties
         albedo = [0,0,0]
     end

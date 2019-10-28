@@ -1,6 +1,6 @@
 classdef mesh < handle
-    %mesh Creates buffers for vertices, normals, colors, indices
-    %   Right-handed coordinate system!
+    % Creates buffers for vertices, normals, colors, indices
+    % Right-handed coordinate system!
     
     properties
         name char
