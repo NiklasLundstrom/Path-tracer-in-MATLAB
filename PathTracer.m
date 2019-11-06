@@ -27,20 +27,26 @@ classdef PathTracer < handle
             tic;
             
             dim = [obj.xres, obj.yres];
-            for x = 1:dim(1)
-                for y = 1:dim(2)
-                    tempColor = [0,0,0];
-                    for sample = 1:obj.nbrSamples
+            tempColor = zeros(dim(1), dim(2), 3, 'single');
+            for sample = 1:obj.nbrSamples
+                for x = 1:dim(1)
+                    for y = 1:dim(2)
                         d = (([x,y]-1 + rand(1,2))./dim)*2 - 1;
                         aspectRatio = dim(1)/dim(2);
                         ray.direction = normalize([d(1)*aspectRatio, -d(2), -1], 'norm');
                         ray.origin = [0,0,0];
                         color = obj.samplePath(ray, obj.pathDepth);                        
-                        tempColor = tempColor + color;
+                        tempColor(y,x,:) = squeeze(tempColor(y,x,:))' + color; 
                     end
-                    obj.output(y,x,:) = obj.gammaCorrect( tempColor / obj.nbrSamples );
                 end
+                % output current state of image
+                image(app.UIAxes, obj.gammaCorrect( tempColor ./ sample) );
+                app.SamplestakenLabel.Text = strcat('Samples taken:: ', num2str(sample));
+                renderTime = toc;
+                app.RendertimeLabel.Text = strcat('Render time:: ', num2str(renderTime), ' s');
+                pause(0.01);
             end
+            obj.output = obj.gammaCorrect( tempColor ./ obj.nbrSamples );
             
             renderTime = toc;
             image(app.UIAxes, obj.output);
@@ -99,6 +105,7 @@ classdef PathTracer < handle
             [t_min, hitIdx] = min(t);
             hitMesh = obj.scene.meshes(meshIdx(hitIdx));
             hitPoint = rayOrigin + rayDirection * t_min;
+            hitMaterial = hitMesh.material;
             triNormals = hitMesh.normals(hitMesh.indices(triIdx(hitIdx),:),:);
             hitNormal  = triNormals(1,:) * (1 - u(hitIdx) - v(hitIdx))...
                         + triNormals(2,:) * u(hitIdx)...

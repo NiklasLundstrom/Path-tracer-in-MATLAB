@@ -15,7 +15,7 @@ classdef scene < handle
                 triangle.material = lambertian(rand(1,3));
                 obj.meshes(1) = triangle;
 
-            elseif (strcmp(sceneName, 'Sphere'))
+            elseif (strcmp(sceneName, 'Spheres'))
                 % sphere
                 transformation = struct;
                 transformation.scale = [1,1,1];
@@ -47,6 +47,14 @@ classdef scene < handle
                 sphere3 = mesh('Sphere', transformation);
                 sphere3.material = glass([0.3,1,0.3], 1.5);
                 obj.meshes(4) = sphere3;
+                
+                % sphere glass
+                transformation = struct;
+                transformation.scale = -0.8*[1,1,1];
+                transformation.translation = [0,0.3,-3];
+                sphere4 = mesh('Sphere', transformation);
+                sphere4.material = glass([0.3,1,0.3], 1.5);
+                obj.meshes(5) = sphere4;
                     
             else
                 error('Invalid scene name!');
