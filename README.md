@@ -11,7 +11,9 @@ A CPU path tracer in MATLAB
 - gamma correction
 - programmable scattering functions
 - reflective materials
+- blurry reflections
+- refractions
 
 <p align="center">
-  <img src="./progress/20191023-Reflections.PNG" width="512" title="GUI">
+  <img src="./progress/20191106-Refractions.PNG" width="512" title="GUI">
 </p>
